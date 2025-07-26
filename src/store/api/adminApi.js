@@ -42,7 +42,7 @@ export const adminApi = createApi({
 
     uploadQuestionPaper: builder.mutation({
       query: (formData) => ({
-        url: "/courses/upload-questions",
+        url: "/upload-questions",
         method: "POST",
         body: formData,
       }),

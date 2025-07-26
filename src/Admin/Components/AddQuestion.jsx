@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import {
   Upload,
   Button,
@@ -34,9 +35,7 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import AdminMainLayout from "../Components/AdminMainLayout";
-import { pdfjs } from "react-pdf";
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+import { useUploadQuestionPaperMutation } from "../../store/api/adminApi";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -45,6 +44,7 @@ const { Panel } = Collapse;
 
 const AddQuestion = () => {
   const [form] = Form.useForm();
+  const [uploadQuestionPaper] = useUploadQuestionPaperMutation();
   const [fileContent, setFileContent] = useState(null);
   const [parsedQuestions, setParsedQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,191 +57,6 @@ const AddQuestion = () => {
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [saveStatus, setSaveStatus] = useState({});
 
-  const parseQuestionPaper = (text) => {
-    const questions = [];
-    const cleanText = text
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    // Enhanced question pattern matching
-    const questionPatterns = [
-      /(Q\d+\.\s)/g, // Q1.
-      /(Question\s+\d+[:.]?\s)/gi, // Question 1: or Question 1.
-      /(\d+\.\s)/g, // 1.
-      /(^\s*\(\d+\)\s)/gm, // (1)
-      /(^\s*\[?\d+\]?\s)/gm, // [1] or 1
-    ];
-
-    let questionMatches = [];
-    let usedPattern = null;
-
-    // Find the best matching pattern
-    for (const pattern of questionPatterns) {
-      const matches = [...cleanText.matchAll(pattern)];
-      if (matches.length > 5) {
-        // Require at least 5 matches to consider it valid
-        questionMatches = matches;
-        usedPattern = pattern;
-        break;
-      }
-    }
-
-    if (questionMatches.length === 0) {
-      // Fallback to splitting by answer options
-      return parseByAnswerOptions(cleanText);
-    }
-
-    // Split text by question positions
-    for (let i = 0; i < questionMatches.length; i++) {
-      try {
-        const currentMatch = questionMatches[i];
-        const nextMatch = questionMatches[i + 1];
-
-        const startPos = currentMatch.index;
-        const endPos = nextMatch ? nextMatch.index : cleanText.length;
-
-        let questionBlock = cleanText.substring(startPos, endPos).trim();
-
-        // Skip very short blocks or those that don't look like questions
-        if (questionBlock.length < 20 || !/[a-zA-Z]/.test(questionBlock))
-          continue;
-
-        // Clean up the question block
-        questionBlock = questionBlock
-          .replace(/^\s*[\(\[]?\d+[\)\]]?\s*/, "")
-          .replace(/^Q\d+\.?\s*/, "")
-          .replace(/^Question\s+\d+[:.]?\s*/i, "")
-          .trim();
-
-        const parsedQuestion = parseIndividualQuestion(questionBlock, i + 1);
-        if (parsedQuestion) {
-          questions.push(parsedQuestion);
-        }
-      } catch (error) {
-        console.error(`Error parsing question ${i + 1}:`, error);
-        continue;
-      }
-    }
-
-    return questions;
-  };
-
-  const parseIndividualQuestion = (questionBlock, questionIndex) => {
-    try {
-      // Extract question text (everything until first option)
-      const questionTextMatch = questionBlock.match(
-        /^[\s\S]*?(?=\n\s*[A-E][\)\.])/i
-      );
-      let questionText = questionTextMatch
-        ? questionTextMatch[0].trim()
-        : questionBlock;
-
-      // Extract options with more flexible patterns
-      const options = {};
-      const optionLetters = ["A", "B", "C", "D", "E"];
-
-      optionLetters.forEach((letter) => {
-        const patterns = [
-          new RegExp(`${letter}[\)\.]\\s*([^\\n]*)(?=\\n|$)`, "i"),
-          new RegExp(`\\n${letter}[\)\.]\\s*([^\\n]*)`, "i"),
-          new RegExp(`\\n\\s*${letter}\\.?\\s+([^\\n]*)`, "i"),
-        ];
-
-        for (const pattern of patterns) {
-          const optionMatch = questionBlock.match(pattern);
-          if (optionMatch && optionMatch[1].trim()) {
-            options[letter] = {
-              text: optionMatch[1].trim(),
-              image: null,
-            };
-            break;
-          }
-        }
-      });
-
-      // Extract correct answer with multiple patterns
-      const correctAnswerPatterns = [
-        /Correct\s+Answer\s*:\s*([A-E])/i,
-        /Answer\s*:\s*([A-E])/i,
-        /Ans\s*:\s*([A-E])/i,
-        /\(?\s*([A-E])\s*\)?\s*(?:is\s+correct|correct\s+answer)/i,
-      ];
-
-      let correctAnswer = "";
-      for (const pattern of correctAnswerPatterns) {
-        const match = questionBlock.match(pattern);
-        if (match) {
-          correctAnswer = match[1].toUpperCase();
-          break;
-        }
-      }
-
-      // Extract difficulty
-      const difficultyMatch = questionBlock.match(
-        /Difficulty\s*(?:Level)?\s*:\s*(\w+)/i
-      );
-      let difficulty = difficultyMatch
-        ? difficultyMatch[1].charAt(0).toUpperCase() +
-          difficultyMatch[1].slice(1).toLowerCase()
-        : "Easy";
-
-      // Extract explanation
-      const explanationMatch = questionBlock.match(
-        /Explanation\s*:\s*([\s\S]*?)(?=\n\s*(?:Q\d|$))/i
-      );
-      const explanation = explanationMatch ? explanationMatch[1].trim() : "";
-
-      return {
-        id: `q_${Date.now()}_${questionIndex}`,
-        questionNumber: `Q${questionIndex}`,
-        questionText,
-        questionImage: null,
-        options,
-        correctAnswer,
-        difficulty,
-        explanation,
-        marks: 1,
-        negativeMarks: 0.25,
-        hasImages: false,
-        isEdited: false,
-      };
-    } catch (error) {
-      console.error(`Error parsing question ${questionIndex}:`, error);
-      return null;
-    }
-  };
-
-  const parseByAnswerOptions = (text) => {
-    console.log("Trying alternative parsing by answer options...");
-    const questions = [];
-
-    // Split by option A) patterns
-    const sections = text.split(/(?=\n\s*A\))/);
-
-    sections.forEach((section, index) => {
-      if (index === 0) return; // Skip first section which might be header
-
-      try {
-        const questionText = section.split(/\n\s*A\)/)[0].trim();
-        if (questionText.length < 10) return;
-
-        const question = parseIndividualQuestion(section, index);
-        if (question) {
-          questions.push(question);
-        }
-      } catch (error) {
-        console.error(
-          `Error in alternative parsing for section ${index}:`,
-          error
-        );
-      }
-    });
-
-    return questions;
-  };
-
   const handleFileUpload = async (file) => {
     setIsLoading(true);
     setParsedQuestions([]);
@@ -249,36 +64,21 @@ const AddQuestion = () => {
     form.resetFields();
 
     try {
-      let content = "";
+      const formData = new FormData();
+      formData.append("file", file);
 
-      if (file.name.toLowerCase().endsWith(".pdf")) {
-        // For PDF files
-        const arrayBuffer = await file.arrayBuffer();
-        const data = await pdfParse(arrayBuffer);
-        content = data.text;
+      // Single API call that handles both upload and parsing
+      const response = await uploadQuestionPaper(formData).unwrap();
 
-        if (!content.trim()) {
-          message.error(
-            "Couldn't extract text from PDF. It might be a scanned image."
-          );
-          setIsLoading(false);
-          return;
-        }
+      if (response.questions && response.questions.length > 0) {
+        setParsedQuestions(response.questions);
+        setActiveQuestionIndex(0);
+        form.setFieldsValue(response.questions[0]);
+        message.success(
+          `Successfully parsed ${response.questions.length} questions!`,
+          5
+        );
       } else {
-        // For text files
-        content = await file.text();
-      }
-
-      if (!content.trim()) {
-        message.error("The uploaded file appears to be empty or unreadable.");
-        setIsLoading(false);
-        return;
-      }
-
-      setFileContent(content);
-      const parsed = parseQuestionPaper(content);
-
-      if (parsed.length === 0) {
         Modal.error({
           title: "No Questions Found",
           content: (
@@ -294,15 +94,14 @@ const AddQuestion = () => {
             </div>
           ),
         });
-      } else {
-        setParsedQuestions(parsed);
-        setActiveQuestionIndex(0);
-        form.setFieldsValue(parsed[0]);
-        message.success(`Successfully parsed ${parsed.length} questions!`, 5);
       }
     } catch (error) {
       console.error("Error processing file:", error);
-      message.error(`Error processing file: ${error.message}`);
+      message.error(
+        `Error processing file: ${
+          error.message || error.data?.message || "Unknown error"
+        }`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -476,12 +275,17 @@ const AddQuestion = () => {
     Modal.confirm({
       title: "Submit Question Paper",
       content: `Are you sure you want to submit ${parsedQuestions.length} questions?`,
-      onOk: () => {
-        // Just display the parsed data in console instead of making API call
-        console.log("Questions to be submitted:", parsedQuestions);
-        message.success(
-          `Question paper with ${parsedQuestions.length} questions processed successfully! Check console for data.`
-        );
+      onOk: async () => {
+        try {
+          // Here you would call your final submission API
+          // For now, we'll just log the data
+          console.log("Questions to be submitted:", parsedQuestions);
+          message.success(
+            `Question paper with ${parsedQuestions.length} questions processed successfully! Check console for data.`
+          );
+        } catch (error) {
+          message.error("Failed to submit questions: " + error.message);
+        }
       },
     });
   };
