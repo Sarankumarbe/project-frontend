@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-
+import { useState } from "react";
 import {
   Upload,
   Button,
@@ -35,7 +34,10 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import AdminMainLayout from "../Components/AdminMainLayout";
-import { useUploadQuestionPaperMutation } from "../../store/api/adminApi";
+import {
+  useUploadQuestionPaperMutation,
+  useSaveQuestionsMutation,
+} from "../../store/api/adminApi";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -45,7 +47,7 @@ const { Panel } = Collapse;
 const AddQuestion = () => {
   const [form] = Form.useForm();
   const [uploadQuestionPaper] = useUploadQuestionPaperMutation();
-  const [fileContent, setFileContent] = useState(null);
+  const [saveQuestions] = useSaveQuestionsMutation();
   const [parsedQuestions, setParsedQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
@@ -67,10 +69,9 @@ const AddQuestion = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Single API call that handles both upload and parsing
       const response = await uploadQuestionPaper(formData).unwrap();
 
-      if (response.questions && response.questions.length > 0) {
+      if (response.questions?.length > 0) {
         setParsedQuestions(response.questions);
         setActiveQuestionIndex(0);
         form.setFieldsValue(response.questions[0]);
@@ -117,9 +118,6 @@ const AddQuestion = () => {
       if (fieldType === "question") {
         currentQuestion.questionImage = imageUrl;
       } else if (fieldType === "option" && optionKey) {
-        if (!currentQuestion.options[optionKey]) {
-          currentQuestion.options[optionKey] = { text: "", image: null };
-        }
         currentQuestion.options[optionKey].image = imageUrl;
       }
 
@@ -130,7 +128,6 @@ const AddQuestion = () => {
       setImageModalVisible(false);
       message.success("Image uploaded successfully!");
     };
-
     reader.readAsDataURL(file);
     return false;
   };
@@ -146,7 +143,6 @@ const AddQuestion = () => {
           isEdited: true,
         };
         setParsedQuestions(updatedQuestions);
-
         setActiveQuestionIndex(index);
         form.setFieldsValue(parsedQuestions[index]);
       })
@@ -164,16 +160,8 @@ const AddQuestion = () => {
       isEdited: true,
     };
     setParsedQuestions(updatedQuestions);
-
     setSaveStatus((prev) => ({ ...prev, [activeQuestionIndex]: true }));
     message.success("Question saved successfully!");
-
-    const nextUnsavedIndex = updatedQuestions.findIndex(
-      (q, idx) => idx > activeQuestionIndex && !saveStatus[idx]
-    );
-    if (nextUnsavedIndex !== -1) {
-      setTimeout(() => handleQuestionSelect(nextUnsavedIndex), 500);
-    }
   };
 
   const removeImage = (fieldType, optionKey = null) => {
@@ -183,16 +171,13 @@ const AddQuestion = () => {
     if (fieldType === "question") {
       currentQuestion.questionImage = null;
     } else if (fieldType === "option" && optionKey) {
-      if (currentQuestion.options[optionKey]) {
-        currentQuestion.options[optionKey].image = null;
-      }
+      currentQuestion.options[optionKey].image = null;
     }
 
-    const hasQuestionImage = currentQuestion.questionImage;
-    const hasOptionImages = Object.values(currentQuestion.options).some(
-      (opt) => opt?.image
+    currentQuestion.hasImages = Boolean(
+      currentQuestion.questionImage ||
+        Object.values(currentQuestion.options).some((opt) => opt?.image)
     );
-    currentQuestion.hasImages = hasQuestionImage || hasOptionImages;
     currentQuestion.isEdited = true;
 
     setParsedQuestions(updatedQuestions);
@@ -246,29 +231,14 @@ const AddQuestion = () => {
           setActiveQuestionIndex(newIndex);
           form.setFieldsValue(updatedQuestions[newIndex]);
         }
-
         message.success("Question deleted successfully!");
       },
     });
   };
 
-  const submitAllQuestions = () => {
+  const submitAllQuestions = async () => {
     if (parsedQuestions.length === 0) {
       message.warning("No questions to submit!");
-      return;
-    }
-
-    const invalidQuestions = parsedQuestions.filter(
-      (q) =>
-        !q.questionText ||
-        !q.correctAnswer ||
-        Object.values(q.options).some((opt) => !opt?.text)
-    );
-
-    if (invalidQuestions.length > 0) {
-      message.error(
-        `Please complete all required fields. ${invalidQuestions.length} questions are incomplete.`
-      );
       return;
     }
 
@@ -277,20 +247,28 @@ const AddQuestion = () => {
       content: `Are you sure you want to submit ${parsedQuestions.length} questions?`,
       onOk: async () => {
         try {
-          // Here you would call your final submission API
-          // For now, we'll just log the data
-          console.log("Questions to be submitted:", parsedQuestions);
+          setIsLoading(true);
+          const response = await saveQuestions(parsedQuestions).unwrap();
           message.success(
-            `Question paper with ${parsedQuestions.length} questions processed successfully! Check console for data.`
+            `Successfully saved ${response.savedCount} questions!`
           );
+          setParsedQuestions([]);
+          setActiveQuestionIndex(0);
+          form.resetFields();
+          setSaveStatus({});
         } catch (error) {
-          message.error("Failed to submit questions: " + error.message);
+          console.error("Failed to submit questions:", error);
+          message.error(
+            error.data?.message || error.message || "Failed to save questions"
+          );
+        } finally {
+          setIsLoading(false);
         }
       },
     });
   };
 
-  const filteredQuestions = parsedQuestions.filter((q, index) => {
+  const filteredQuestions = parsedQuestions.filter((q) => {
     const matchesSearch =
       q.questionText.toLowerCase().includes(searchText.toLowerCase()) ||
       q.questionNumber.toLowerCase().includes(searchText.toLowerCase());
@@ -394,102 +372,96 @@ const AddQuestion = () => {
                 }
               >
                 <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
-                  {filteredQuestions.map((q, originalIndex) => {
-                    const actualIndex = parsedQuestions.indexOf(q);
-                    return (
-                      <div
-                        key={q.id}
-                        onClick={() => handleQuestionSelect(actualIndex)}
-                        style={{
-                          padding: "12px",
-                          marginBottom: 8,
-                          cursor: "pointer",
-                          backgroundColor:
-                            activeQuestionIndex === actualIndex
-                              ? "#e6f7ff"
-                              : "transparent",
-                          borderRadius: 8,
-                          border:
-                            activeQuestionIndex === actualIndex
-                              ? "2px solid #1890ff"
-                              : "1px solid #f0f0f0",
-                          transition: "all 0.2s",
-                        }}
-                      >
-                        <Space direction="vertical" style={{ width: "100%" }}>
-                          <Space
-                            style={{
-                              width: "100%",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Space>
-                              <Text strong>{q.questionNumber}</Text>
-                              <Tag
-                                color={
-                                  q.difficulty === "Easy"
-                                    ? "green"
-                                    : q.difficulty === "Medium"
-                                    ? "orange"
-                                    : "red"
-                                }
-                              >
-                                {q.difficulty}
-                              </Tag>
-                              {q.hasImages && (
-                                <Tooltip title="Contains images">
-                                  <Tag color="blue">
-                                    <PictureOutlined />
-                                  </Tag>
-                                </Tooltip>
-                              )}
-                              {q.isEdited && (
-                                <Tooltip title="Edited">
-                                  <Tag color="purple">
-                                    <EditOutlined />
-                                  </Tag>
-                                </Tooltip>
-                              )}
-                              {saveStatus[actualIndex] && (
-                                <Tooltip title="Saved">
-                                  <Tag color="green">
-                                    <CheckCircleOutlined />
-                                  </Tag>
-                                </Tooltip>
-                              )}
-                            </Space>
-                            <Button
-                              type="text"
-                              danger
-                              size="small"
-                              icon={<DeleteOutlined />}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteQuestion(actualIndex);
-                              }}
-                            />
-                          </Space>
-
-                          <Text
-                            ellipsis={{ tooltip: q.questionText }}
-                            style={{ fontSize: 14, marginRight: 8 }}
-                          >
-                            {q.questionText}
-                          </Text>
-
+                  {filteredQuestions.map((q, index) => (
+                    <div
+                      key={q.id}
+                      onClick={() => handleQuestionSelect(index)}
+                      style={{
+                        padding: "12px",
+                        marginBottom: 8,
+                        cursor: "pointer",
+                        backgroundColor:
+                          activeQuestionIndex === index
+                            ? "#e6f7ff"
+                            : "transparent",
+                        borderRadius: 8,
+                        border:
+                          activeQuestionIndex === index
+                            ? "2px solid #1890ff"
+                            : "1px solid #f0f0f0",
+                      }}
+                    >
+                      <Space direction="vertical" style={{ width: "100%" }}>
+                        <Space
+                          style={{
+                            width: "100%",
+                            justifyContent: "space-between",
+                          }}
+                        >
                           <Space>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              Correct:{" "}
-                              <Text strong>{q.correctAnswer || "Not set"}</Text>
-                            </Text>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              Marks: <Text strong>{q.marks || 1}</Text>
-                            </Text>
+                            <Text strong>{q.questionNumber}</Text>
+                            <Tag
+                              color={
+                                q.difficulty === "Easy"
+                                  ? "green"
+                                  : q.difficulty === "Medium"
+                                  ? "orange"
+                                  : "red"
+                              }
+                            >
+                              {q.difficulty}
+                            </Tag>
+                            {q.hasImages && (
+                              <Tooltip title="Contains images">
+                                <Tag color="blue">
+                                  <PictureOutlined />
+                                </Tag>
+                              </Tooltip>
+                            )}
+                            {q.isEdited && (
+                              <Tooltip title="Edited">
+                                <Tag color="purple">
+                                  <EditOutlined />
+                                </Tag>
+                              </Tooltip>
+                            )}
+                            {saveStatus[index] && (
+                              <Tooltip title="Saved">
+                                <Tag color="green">
+                                  <CheckCircleOutlined />
+                                </Tag>
+                              </Tooltip>
+                            )}
                           </Space>
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteQuestion(index);
+                            }}
+                          />
                         </Space>
-                      </div>
-                    );
-                  })}
+                        <Text
+                          ellipsis={{ tooltip: q.questionText }}
+                          style={{ fontSize: 14 }}
+                        >
+                          {q.questionText}
+                        </Text>
+                        <Space>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Correct:{" "}
+                            <Text strong>{q.correctAnswer || "Not set"}</Text>
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Marks: <Text strong>{q.marks || 1}</Text>
+                          </Text>
+                        </Space>
+                      </Space>
+                    </div>
+                  ))}
                 </div>
               </Card>
             </Col>
@@ -540,19 +512,11 @@ const AddQuestion = () => {
                 >
                   <Collapse defaultActiveKey={["question", "options"]} ghost>
                     <Panel header="Question Details" key="question">
-                      <Form.Item
-                        name="questionText"
-                        label="Question Text"
-                        rules={[
-                          {
-                            required: true,
-                            message: "Please enter question text",
-                          },
-                        ]}
-                      >
+                      <Form.Item name="questionText" label="Question Text">
                         <TextArea
                           rows={4}
                           placeholder="Enter the question text here..."
+                          style={{ whiteSpace: "pre-line" }}
                         />
                       </Form.Item>
 
@@ -619,12 +583,6 @@ const AddQuestion = () => {
                           <Form.Item
                             name={["options", option, "text"]}
                             label={`Option ${option}`}
-                            rules={[
-                              {
-                                required: true,
-                                message: `Please enter option ${option}`,
-                              },
-                            ]}
                           >
                             <Input
                               placeholder={`Enter option ${option} text...`}
@@ -699,34 +657,18 @@ const AddQuestion = () => {
                           <Form.Item
                             name="correctAnswer"
                             label="Correct Answer"
-                            rules={[
-                              {
-                                required: true,
-                                message: "Please select correct answer",
-                              },
-                            ]}
                           >
                             <Select placeholder="Select correct answer">
-                              <Option value="A">A</Option>
-                              <Option value="B">B</Option>
-                              <Option value="C">C</Option>
-                              <Option value="D">D</Option>
-                              <Option value="E">E</Option>
+                              {["A", "B", "C", "D", "E"].map((opt) => (
+                                <Option key={opt} value={opt}>
+                                  {opt}
+                                </Option>
+                              ))}
                             </Select>
                           </Form.Item>
                         </Col>
-
                         <Col span={12}>
-                          <Form.Item
-                            name="difficulty"
-                            label="Difficulty Level"
-                            rules={[
-                              {
-                                required: true,
-                                message: "Please select difficulty level",
-                              },
-                            ]}
-                          >
+                          <Form.Item name="difficulty" label="Difficulty Level">
                             <Select>
                               <Option value="Easy">Easy</Option>
                               <Option value="Medium">Medium</Option>
@@ -745,13 +687,7 @@ const AddQuestion = () => {
 
                       <Row gutter={16}>
                         <Col span={12}>
-                          <Form.Item
-                            name="marks"
-                            label="Marks"
-                            rules={[
-                              { required: true, message: "Please enter marks" },
-                            ]}
-                          >
+                          <Form.Item name="marks" label="Marks">
                             <InputNumber
                               min={0}
                               step={0.5}
@@ -759,17 +695,10 @@ const AddQuestion = () => {
                             />
                           </Form.Item>
                         </Col>
-
                         <Col span={12}>
                           <Form.Item
                             name="negativeMarks"
                             label="Negative Marks"
-                            rules={[
-                              {
-                                required: true,
-                                message: "Please enter negative marks",
-                              },
-                            ]}
                           >
                             <InputNumber
                               min={0}
@@ -806,7 +735,6 @@ const AddQuestion = () => {
             </Button>
           </Card>
         )}
-        {/* Image Upload Modal */}
         <Modal
           title="Upload Image"
           visible={imageModalVisible}
@@ -829,7 +757,6 @@ const AddQuestion = () => {
             Supported formats: JPG, PNG, GIF, SVG
           </Text>
         </Modal>
-        {/* Image Preview Modal */}
         <Modal
           visible={previewVisible}
           title={`Question Preview: ${parsedQuestions[activeQuestionIndex]?.questionNumber}`}
@@ -842,7 +769,9 @@ const AddQuestion = () => {
               <div style={{ marginBottom: 24 }}>
                 <Text strong style={{ fontSize: 16 }}>
                   {parsedQuestions[activeQuestionIndex].questionNumber}:{" "}
-                  {parsedQuestions[activeQuestionIndex].questionText}
+                  <div style={{ whiteSpace: "pre-line" }}>
+                    {parsedQuestions[activeQuestionIndex].questionText}
+                  </div>
                 </Text>
                 {parsedQuestions[activeQuestionIndex].questionImage && (
                   <div style={{ margin: "16px 0" }}>
@@ -869,7 +798,12 @@ const AddQuestion = () => {
                     }}
                   >
                     <Text strong>Option {option}:</Text>{" "}
-                    {parsedQuestions[activeQuestionIndex].options[option]?.text}
+                    <div style={{ whiteSpace: "pre-line" }}>
+                      {
+                        parsedQuestions[activeQuestionIndex].options[option]
+                          ?.text
+                      }
+                    </div>
                     {parsedQuestions[activeQuestionIndex].options[option]
                       ?.image && (
                       <div style={{ marginTop: 8 }}>
@@ -913,7 +847,9 @@ const AddQuestion = () => {
                 </Descriptions.Item>
                 {parsedQuestions[activeQuestionIndex].explanation && (
                   <Descriptions.Item label="Explanation" span={2}>
-                    {parsedQuestions[activeQuestionIndex].explanation}
+                    <div style={{ whiteSpace: "pre-line" }}>
+                      {parsedQuestions[activeQuestionIndex].explanation}
+                    </div>
                   </Descriptions.Item>
                 )}
               </Descriptions>
