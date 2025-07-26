@@ -96,7 +96,7 @@ const AdminLoginForm = () => {
           </Button>
         </Form.Item>
 
-        <Divider>Or</Divider>
+        {/* <Divider>Or</Divider>
 
         <div style={{ textAlign: "center" }}>
           <Space direction="vertical">
@@ -107,7 +107,7 @@ const AdminLoginForm = () => {
               </Button>
             </Link>
           </Space>
-        </div>
+        </div> */}
       </Form>
     </div>
   );

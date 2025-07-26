@@ -106,12 +106,12 @@ const LoginForm = () => {
               Register Now
             </Button>
           </Link>
-          <span>Are you an admin?</span>
+          {/* <span>Are you an admin?</span>
           <Link to="/admin/login">
             <Button type="link" size="large">
               Admin Login
             </Button>
-          </Link>
+          </Link> */}
         </Space>
       </div>
     </Form>

@@ -1,11 +1,11 @@
 import AdminMainLayout from "../Components/AdminMainLayout";
 
-const AdminDashboard = () => {
+const AdminProfile = () => {
   return (
     <AdminMainLayout>
-      <h1>AdminDashboard</h1>
+      <h1>Profile</h1>
     </AdminMainLayout>
   );
 };
 
-export default AdminDashboard;
+export default AdminProfile;
