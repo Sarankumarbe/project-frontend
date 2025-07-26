@@ -267,6 +267,9 @@ const AddQuestion = () => {
 
   return (
     <AdminMainLayout>
+      <div style={{ marginBottom: 16 }}>
+        <Button onClick={() => navigate("/admin/question-paper")}>Back</Button>
+      </div>
       <div style={{ padding: "24px" }}>
         <Title level={2}>
           <FileTextOutlined /> Add Question Paper
