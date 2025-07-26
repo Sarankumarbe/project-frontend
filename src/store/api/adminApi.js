@@ -39,10 +39,10 @@ export const adminApi = createApi({
     }),
 
     saveQuestions: builder.mutation({
-      query: (questions) => ({
+      query: (data) => ({
         url: "/save-questions",
         method: "POST",
-        body: { questions },
+        body: data,
         headers: {
           "Content-Type": "application/json",
         },

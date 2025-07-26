@@ -29,7 +29,6 @@ import {
   DeleteOutlined,
   EyeOutlined,
   SaveOutlined,
-  PlusOutlined,
   FileTextOutlined,
   CheckCircleOutlined,
 } from "@ant-design/icons";
@@ -58,6 +57,11 @@ const AddQuestion = () => {
   const [searchText, setSearchText] = useState("");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [saveStatus, setSaveStatus] = useState({});
+  const [submitModalVisible, setSubmitModalVisible] = useState(false);
+  const [paperMetadata, setPaperMetadata] = useState({
+    title: "",
+    duration: 60, // default 60 minutes
+  });
 
   const handleFileUpload = async (file) => {
     setIsLoading(true);
@@ -185,35 +189,6 @@ const AddQuestion = () => {
     message.success("Image removed successfully!");
   };
 
-  const addNewQuestion = () => {
-    const newQuestion = {
-      id: `q_${Date.now()}_new`,
-      questionNumber: `Q${parsedQuestions.length + 1}`,
-      questionText: "",
-      questionImage: null,
-      options: {
-        A: { text: "", image: null },
-        B: { text: "", image: null },
-        C: { text: "", image: null },
-        D: { text: "", image: null },
-        E: { text: "", image: null },
-      },
-      correctAnswer: "",
-      difficulty: "Easy",
-      explanation: "",
-      marks: 1,
-      negativeMarks: 0.25,
-      hasImages: false,
-      isEdited: false,
-    };
-
-    const updatedQuestions = [...parsedQuestions, newQuestion];
-    setParsedQuestions(updatedQuestions);
-    setActiveQuestionIndex(updatedQuestions.length - 1);
-    form.setFieldsValue(newQuestion);
-    message.success("New question added!");
-  };
-
   const deleteQuestion = (index) => {
     Modal.confirm({
       title: "Delete Question",
@@ -236,36 +211,32 @@ const AddQuestion = () => {
     });
   };
 
+  // In AddQuestion.jsx, replace the submitAllQuestions function with this:
+
   const submitAllQuestions = async () => {
     if (parsedQuestions.length === 0) {
       message.warning("No questions to submit!");
       return;
     }
 
-    Modal.confirm({
-      title: "Submit Question Paper",
-      content: `Are you sure you want to submit ${parsedQuestions.length} questions?`,
-      onOk: async () => {
-        try {
-          setIsLoading(true);
-          const response = await saveQuestions(parsedQuestions).unwrap();
-          message.success(
-            `Successfully saved ${response.savedCount} questions!`
-          );
-          setParsedQuestions([]);
-          setActiveQuestionIndex(0);
-          form.resetFields();
-          setSaveStatus({});
-        } catch (error) {
-          console.error("Failed to submit questions:", error);
-          message.error(
-            error.data?.message || error.message || "Failed to save questions"
-          );
-        } finally {
-          setIsLoading(false);
-        }
-      },
-    });
+    try {
+      // First, save the current question being edited
+      const currentFormValues = await form.validateFields();
+      const updatedQuestions = [...parsedQuestions];
+      updatedQuestions[activeQuestionIndex] = {
+        ...updatedQuestions[activeQuestionIndex],
+        ...currentFormValues,
+        isEdited: true,
+      };
+      setParsedQuestions(updatedQuestions);
+
+      // Then show the submit modal
+      setSubmitModalVisible(true);
+    } catch (error) {
+      // If validation fails, still show the modal but warn user
+      console.warn("Current question has validation errors:", error);
+      setSubmitModalVisible(true);
+    }
   };
 
   const filteredQuestions = parsedQuestions.filter((q) => {
@@ -322,11 +293,6 @@ const AddQuestion = () => {
                 message={`Successfully loaded ${parsedQuestions.length} questions`}
                 type="success"
                 showIcon
-                action={
-                  <Button size="small" onClick={addNewQuestion}>
-                    <PlusOutlined /> Add New Question
-                  </Button>
-                }
               />
             )}
           </Space>
@@ -335,26 +301,14 @@ const AddQuestion = () => {
           <Row gutter={16}>
             <Col span={8}>
               <Card
-                title={
-                  <Space>
-                    <span>Questions ({parsedQuestions.length})</span>
-                    <Button
-                      type="primary"
-                      size="small"
-                      icon={<PlusOutlined />}
-                      onClick={addNewQuestion}
-                    >
-                      Add
-                    </Button>
-                  </Space>
-                }
+                title={`Questions (${parsedQuestions.length})`}
                 extra={
                   <Space>
                     <Input.Search
                       placeholder="Search questions..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
-                      style={{ width: 200 }}
+                      style={{ width: 20 }}
                       size="small"
                     />
                     <Select
@@ -371,7 +325,7 @@ const AddQuestion = () => {
                   </Space>
                 }
               >
-                <div style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                <div style={{ maxHeight: "250vh", overflowY: "auto" }}>
                   {filteredQuestions.map((q, index) => (
                     <div
                       key={q.id}
@@ -855,6 +809,116 @@ const AddQuestion = () => {
               </Descriptions>
             </div>
           )}
+        </Modal>
+        <Modal
+          title="Submit Question Paper"
+          visible={submitModalVisible}
+          onCancel={() => setSubmitModalVisible(false)}
+          // In AddQuestion.jsx, replace the Modal onOk handler with this:
+
+          onOk={async () => {
+            if (parsedQuestions.length === 0) {
+              message.error("No questions to submit.");
+              return;
+            }
+
+            // Get the latest questions state (including any unsaved changes)
+            let questionsToSubmit = [...parsedQuestions];
+
+            try {
+              // Try to save current form values if form is valid
+              const currentFormValues = await form.validateFields();
+              questionsToSubmit[activeQuestionIndex] = {
+                ...questionsToSubmit[activeQuestionIndex],
+                ...currentFormValues,
+                isEdited: true,
+              };
+            } catch (formError) {
+              console.warn(
+                "Using existing question data due to form validation error"
+              );
+            }
+
+            // Validate all questions before submitting
+            const invalidQuestions = questionsToSubmit.filter((q, idx) => {
+              if (!q.questionText?.trim()) return true;
+              if (
+                !q.correctAnswer ||
+                !["A", "B", "C", "D", "E"].includes(q.correctAnswer)
+              )
+                return true;
+
+              // Check if all options have text
+              const optionsValid = ["A", "B", "C", "D", "E"].every((opt) =>
+                q.options?.[opt]?.text?.trim()
+              );
+              if (!optionsValid) return true;
+
+              return false;
+            });
+
+            if (invalidQuestions.length > 0) {
+              message.error(
+                `Cannot submit. ${invalidQuestions.length} question(s) are invalid. Please check all questions have text, options, and correct answers.`
+              );
+              return;
+            }
+
+            try {
+              setIsLoading(true);
+
+              const payload = {
+                title:
+                  paperMetadata.title ||
+                  `Paper ${new Date().toLocaleDateString()}`,
+                duration: paperMetadata.duration || 60,
+                questions: questionsToSubmit,
+              };
+
+              console.log("Submitting payload:", payload); // Debug log
+
+              const response = await saveQuestions(payload).unwrap();
+
+              message.success(
+                `Successfully saved paper with ${response.questionPaper.questions.length} questions!`
+              );
+
+              // Reset state after successful submission
+              setParsedQuestions([]);
+              setActiveQuestionIndex(0);
+              form.resetFields();
+              setSaveStatus({});
+              setPaperMetadata({ title: "", duration: 60 });
+              setSubmitModalVisible(false);
+            } catch (error) {
+              console.error("Failed to submit questions:", error);
+              message.error(
+                error.data?.message ||
+                  error.message ||
+                  "Failed to save questions"
+              );
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+        >
+          <Input
+            placeholder="Question Paper Title"
+            value={paperMetadata.title}
+            onChange={(e) =>
+              setPaperMetadata({ ...paperMetadata, title: e.target.value })
+            }
+            style={{ marginBottom: "10px" }}
+          />
+          <InputNumber
+            placeholder="Duration (minutes)"
+            value={paperMetadata.duration}
+            onChange={(value) =>
+              setPaperMetadata({ ...paperMetadata, duration: value })
+            }
+            style={{ width: "100%" }}
+            min={1}
+          />
         </Modal>
       </div>
     </AdminMainLayout>
