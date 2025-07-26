@@ -3,12 +3,11 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api/admin",
+    baseUrl: "http://localhost:8080/api/admin",
+    credentials: "include",
     prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
+      // Since token is in cookies, we don't need to set authorization header
+      // The browser will automatically send cookies
       return headers;
     },
   }),
@@ -20,6 +19,14 @@ export const adminApi = createApi({
         url: "/login",
         method: "POST",
         body: credentials,
+      }),
+    }),
+
+    // Logout endpoint
+    adminLogout: builder.mutation({
+      query: () => ({
+        url: "/logout",
+        method: "POST",
       }),
     }),
 
@@ -182,6 +189,7 @@ export const adminApi = createApi({
 export const {
   // Auth
   useAdminLoginMutation,
+  useAdminLogoutMutation,
 
   // Course Management
   useCreateCourseMutation,

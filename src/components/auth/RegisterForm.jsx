@@ -17,16 +17,12 @@ const RegisterForm = () => {
   const onFinish = async (values) => {
     try {
       const { confirmPassword, ...registerData } = values;
-
-      // ✅ Set role manually
-      registerData.role = "admin"; // or 'admin' if needed
+      registerData.role = "user";
 
       await register(registerData).unwrap();
-
       message.success("Registration successful! Please login to continue.");
       navigate("/login");
     } catch (error) {
-      console.log(error);
       message.error(error.data?.message || "Registration failed");
     }
   };
@@ -43,27 +39,28 @@ const RegisterForm = () => {
         name="firstName"
         label="First Name"
         rules={[
-          { required: true, message: "Please input your full name!" },
-          { min: 2, message: "Name must be at least 2 characters!" },
+          { required: true, message: "Please input your first name!" },
+          { min: 2, message: "First name must be at least 2 characters!" },
         ]}
       >
         <Input
           prefix={<UserOutlined />}
-          placeholder="Enter your full name"
+          placeholder="Enter your first name"
           size="large"
         />
       </Form.Item>
+
       <Form.Item
         name="lastName"
         label="Last Name"
         rules={[
-          { required: true, message: "Please input your full name!" },
-          { min: 2, message: "Name must be at least 2 characters!" },
+          { required: true, message: "Please input your last name!" },
+          { min: 2, message: "Last name must be at least 2 characters!" },
         ]}
       >
         <Input
           prefix={<UserOutlined />}
-          placeholder="Enter your full name"
+          placeholder="Enter your last name"
           size="large"
         />
       </Form.Item>

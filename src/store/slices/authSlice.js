@@ -1,12 +1,64 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Helper functions for localStorage with separate storage for users and admins
+const loadAuthFromLocalStorage = () => {
+  try {
+    // Check for admin first, then user
+    const admin = localStorage.getItem("adminInfo");
+    if (admin) {
+      const parsedAdmin = JSON.parse(admin);
+      return {
+        user: parsedAdmin,
+        isAuthenticated: true,
+        role: "admin",
+      };
+    }
+
+    const user = localStorage.getItem("userInfo");
+    if (user) {
+      const parsedUser = JSON.parse(user);
+      return {
+        user: parsedUser,
+        isAuthenticated: true,
+        role: "user",
+      };
+    }
+  } catch (error) {
+    console.error("Error loading auth data from localStorage:", error);
+  }
+  return {};
+};
+
+const saveAuthToLocalStorage = (userData) => {
+  try {
+    if (userData.role === "admin") {
+      localStorage.setItem("adminInfo", JSON.stringify(userData));
+      localStorage.removeItem("userInfo"); // Clear user info if existed
+    } else if (userData.role === "user") {
+      localStorage.setItem("userInfo", JSON.stringify(userData));
+      localStorage.removeItem("adminInfo"); // Clear admin info if existed
+    }
+  } catch (error) {
+    console.error("Error saving auth data to localStorage:", error);
+  }
+};
+
+const removeAuthFromLocalStorage = () => {
+  try {
+    localStorage.removeItem("userInfo");
+    localStorage.removeItem("adminInfo");
+  } catch (error) {
+    console.error("Error removing auth data from localStorage:", error);
+  }
+};
+
 const initialState = {
   user: null,
-  token: null,
-  isAuthenticated: false,
+  isAuthenticated: false, // Token is now in cookies, not in Redux
   role: null, // 'admin' or 'user'
   loading: false,
   error: null,
+  ...loadAuthFromLocalStorage(), // Load auth data from localStorage
 };
 
 const authSlice = createSlice({
@@ -18,11 +70,24 @@ const authSlice = createSlice({
       state.error = null;
     },
     loginSuccess: (state, action) => {
+      const { user } = action.payload;
+
+      // Validate role
+      if (!["admin", "user"].includes(user.role)) {
+        throw new Error(`Invalid role: ${user.role}`);
+      }
+
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.token = action.payload.token;
-      state.role = action.payload.role;
+      state.user = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+      };
+      state.role = user.role;
+
+      saveAuthToLocalStorage(state.user);
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -30,10 +95,10 @@ const authSlice = createSlice({
     },
     logout: (state) => {
       state.user = null;
-      state.token = null;
       state.isAuthenticated = false;
       state.role = null;
       state.error = null;
+      removeAuthFromLocalStorage();
     },
     clearError: (state) => {
       state.error = null;
@@ -43,4 +108,5 @@ const authSlice = createSlice({
 
 export const { loginStart, loginSuccess, loginFailure, logout, clearError } =
   authSlice.actions;
+
 export default authSlice.reducer;

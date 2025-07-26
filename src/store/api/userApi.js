@@ -4,12 +4,10 @@ export const userApi = createApi({
   reducerPath: "userApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:8080/api/user",
-    credentials: "include",
+    credentials: "include", // This ensures cookies are sent with requests
     prepareHeaders: (headers, { getState }) => {
-      const token = getState().auth.token;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
+      // Since token is in cookies, we don't need to set authorization header
+      // The browser will automatically send cookies
       return headers;
     },
   }),
@@ -29,6 +27,14 @@ export const userApi = createApi({
         url: "/signup",
         method: "POST",
         body: userData,
+      }),
+    }),
+
+    // Logout endpoint
+    userLogout: builder.mutation({
+      query: () => ({
+        url: "/logout",
+        method: "POST",
       }),
     }),
 
@@ -129,6 +135,7 @@ export const {
   // Auth
   useUserLoginMutation,
   useUserRegisterMutation,
+  useUserLogoutMutation,
 
   // Public
   useGetPublicCoursesQuery,

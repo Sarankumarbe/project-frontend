@@ -1,61 +1,46 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Form, Input, Button, message, Divider, Space } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { useUserLoginMutation } from "../../store/api/userApi";
-import { useAdminLoginMutation } from "../../store/api/adminApi";
 import {
   loginStart,
   loginSuccess,
   loginFailure,
 } from "../../store/slices/authSlice";
+import { setCookie } from "../../utils/cookies";
 
 const LoginForm = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-
-  const { loading } = useSelector((state) => state.auth);
   const [userLogin] = useUserLoginMutation();
-  const [adminLogin] = useAdminLoginMutation();
 
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/user/dashboard";
 
   const onFinish = async (values) => {
     try {
       dispatch(loginStart());
+      const result = await userLogin(values).unwrap();
 
-      // Try user login first
-      let result;
-      try {
-        result = await userLogin(values).unwrap();
-      } catch (userError) {
-        // If user login fails, try admin login
-        try {
-          result = await adminLogin(values).unwrap();
-        } catch (adminError) {
-          throw new Error("Invalid credentials");
-        }
+      // Verify the user role
+      if (result.user.role !== "user") {
+        throw new Error("Access denied. Please use the admin login page.");
       }
+
+      // Set the token in cookies
+      setCookie("token", result.token, 1); // Expires in 1 day
 
       dispatch(
         loginSuccess({
           user: result.user,
-          token: result.token,
-          role: result.role,
         })
       );
 
       message.success("Login successful!");
-
-      // Redirect based on role
-      if (result.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate(from === "/login" ? "/user/dashboard" : from);
-      }
+      navigate(from);
     } catch (error) {
       dispatch(loginFailure(error.message || "Login failed"));
       message.error(error.message || "Login failed");
@@ -105,7 +90,6 @@ const LoginForm = () => {
           type="primary"
           htmlType="submit"
           size="large"
-          loading={loading}
           style={{ width: "100%" }}
         >
           Login
@@ -120,6 +104,12 @@ const LoginForm = () => {
           <Link to="/register">
             <Button type="link" size="large">
               Register Now
+            </Button>
+          </Link>
+          <span>Are you an admin?</span>
+          <Link to="/admin/login">
+            <Button type="link" size="large">
+              Admin Login
             </Button>
           </Link>
         </Space>

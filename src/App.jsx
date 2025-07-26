@@ -18,9 +18,10 @@ import HomePage from "./pages/HomePage";
 // import CoursesPage from "./pages/CoursesPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 
 // Admin Pages
-// import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminDashboard from "./Admin/Pages/AdminDashboard";
 // import CreateCourse from "./pages/admin/CreateCourse";
 // import ManageContent from "./pages/admin/ManageContent";
 // import ManageUsers from "./pages/admin/ManageUsers";
@@ -56,8 +57,9 @@ function App() {
               <Route path="/courses" element={<CoursesPage />} /> */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/admin/login" element={<AdminLoginPage />} />
 
-              {/* <Route
+              <Route
                 path="/admin/dashboard"
                 element={
                   <ProtectedRoute role="admin">
@@ -65,7 +67,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
+              {/* <Route
                 path="/admin/create-course"
                 element={
                   <ProtectedRoute role="admin">
@@ -129,9 +131,9 @@ function App() {
                     <Profile />
                   </ProtectedRoute>
                 }
-              />
+              /> */}
 
-              <Route
+              {/* <Route
                 path="/admin"
                 element={<Navigate to="/admin/dashboard" replace />}
               />
