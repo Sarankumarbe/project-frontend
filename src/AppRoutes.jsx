@@ -14,6 +14,8 @@ import AdminDashboard from "./Admin/Pages/AdminDashboard";
 import AdminCourses from "./Admin/Pages/AdminCourses";
 import AdminPayments from "./Admin/Pages/AdminPayments";
 import AdminProfile from "./Admin/Pages/AdminProfile";
+import AdminQuestionPaper from "./Admin/Pages/AdminQuestionPaper";
+import AddQuestion from "./Admin/Components/AddQuestion";
 
 // User Pages (add your user pages here)
 // import UserDashboard from "./pages/UserDashboard";
@@ -41,6 +43,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute role="admin">
             <AdminCourses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/question-paper"
+        element={
+          <ProtectedRoute role="admin">
+            <AdminQuestionPaper />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/add-question-paper"
+        element={
+          <ProtectedRoute role="admin">
+            <AddQuestion />
           </ProtectedRoute>
         }
       />
