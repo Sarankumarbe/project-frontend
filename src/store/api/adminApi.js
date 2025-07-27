@@ -78,6 +78,53 @@ export const adminApi = createApi({
       }),
       invalidatesTags: ["QuestionPaper"],
     }),
+
+    getCourses: builder.query({
+      query: ({ page = 1, limit = 10, search = "" } = {}) => ({
+        url: "/courses",
+        params: { page, limit, search },
+      }),
+      providesTags: (result) =>
+        result?.courses
+          ? [
+              ...result.courses.map(({ _id }) => ({ type: "Course", id: _id })),
+              { type: "Course", id: "LIST" },
+            ]
+          : [{ type: "Course", id: "LIST" }],
+    }),
+
+    getCourseById: builder.query({
+      query: (id) => `/courses/${id}`,
+      providesTags: (result, error, id) => [{ type: "Course", id }],
+    }),
+
+    createCourse: builder.mutation({
+      query: (courseData) => ({
+        url: "/courses",
+        method: "POST",
+        body: courseData,
+      }),
+      invalidatesTags: [{ type: "Course", id: "LIST" }],
+    }),
+
+    updateCourse: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/courses/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+    }),
+
+    deleteCourse: builder.mutation({
+      query: (id) => ({
+        url: `/courses/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Course", id },
+        { type: "Course", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -86,11 +133,18 @@ export const {
   useAdminLoginMutation,
   useAdminLogoutMutation,
 
-  // Course Management
+  // Question paper Management
   useUploadQuestionPaperMutation,
   useSaveQuestionsMutation,
   useGetQuestionPaperQuery,
   useGetQuestionPapersQuery,
   useUpdateQuestionPaperMutation,
   useDeleteQuestionPaperMutation,
+
+  //courses
+  useGetCoursesQuery,
+  useGetCourseByIdQuery,
+  useCreateCourseMutation,
+  useUpdateCourseMutation,
+  useDeleteCourseMutation,
 } = adminApi;
