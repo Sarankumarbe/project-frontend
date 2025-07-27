@@ -173,7 +173,7 @@ const UserCart = () => {
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/user-course")}
           style={{ marginBottom: 16 }}
         >
           Back
