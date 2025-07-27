@@ -113,15 +113,23 @@ const AdminCourses = () => {
       dataIndex: "image",
       key: "image",
       width: 100,
-      render: (image) => (
-        <Image
-          width={50}
-          height={50}
-          src={image || "/placeholder-image.jpg"}
-          fallback="/placeholder-image.jpg"
-          style={{ objectFit: "cover", borderRadius: 4 }}
-        />
-      ),
+      render: (image) => {
+        const imageUrl = image?.startsWith("http")
+          ? image
+          : `${import.meta.env.VITE_BACKEND_URL}/${image}`;
+
+        return (
+          <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+            <Image
+              width={50}
+              height={50}
+              src={imageUrl}
+              fallback="/placeholder-image.jpg"
+              style={{ objectFit: "cover", borderRadius: 4 }}
+            />
+          </a>
+        );
+      },
     },
     {
       title: "Title",
@@ -223,7 +231,11 @@ const AdminCourses = () => {
       price: course.price,
       questionPapers: course.questionPapers?.map((qp) => qp._id),
     });
-    setImagePreview(course.image || "");
+    setImagePreview(
+      course.image?.startsWith("http")
+        ? course.image
+        : `${import.meta.env.VITE_BACKEND_URL}/${course.image}`
+    );
     setIsModalVisible(true);
   };
 
@@ -466,7 +478,13 @@ const AdminCourses = () => {
                   <Image
                     width={200}
                     height={150}
-                    src={courseDetails.image}
+                    src={
+                      courseDetails.image?.startsWith("http")
+                        ? courseDetails.image
+                        : `${import.meta.env.VITE_BACKEND_URL}/${
+                            courseDetails.image
+                          }`
+                    }
                     style={{ objectFit: "cover", borderRadius: 8 }}
                     fallback="/placeholder-image.jpg"
                   />
@@ -610,7 +628,14 @@ const AdminCourses = () => {
                         <Image
                           width={150}
                           height={120}
-                          src={imagePreview || editingCourse?.image}
+                          src={
+                            imagePreview ||
+                            (editingCourse?.image?.startsWith("http")
+                              ? editingCourse.image
+                              : `${import.meta.env.VITE_BACKEND_URL}/${
+                                  editingCourse.image
+                                }`)
+                          }
                           style={{ objectFit: "cover", borderRadius: 8 }}
                           fallback="/placeholder-image.jpg"
                         />

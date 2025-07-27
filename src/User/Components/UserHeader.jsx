@@ -16,14 +16,14 @@ import {
   UserOutlined,
   MenuOutlined,
 } from "@ant-design/icons";
-import "./AdminHeader.css";
+import "./UserHeader.css";
 import { useNavigate } from "react-router-dom";
 
 const { Header } = Layout;
 
-const AdminHeader = ({ collapsed, setCollapsed }) => {
+const UserHeader = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
-  const adminInfo = JSON.parse(localStorage.getItem("adminInfo")) || {};
+  const userInfo = JSON.parse(localStorage.getItem("userInfo")) || {};
 
   const menu = (
     <Menu>
@@ -34,10 +34,10 @@ const AdminHeader = ({ collapsed, setCollapsed }) => {
       >
         <div style={{ padding: "8px 12px" }}>
           <div style={{ fontWeight: "bold" }}>
-            {adminInfo.firstName} {adminInfo.lastName}
+            {userInfo.firstName} {userInfo.lastName}
           </div>
           <div style={{ color: "#888", fontSize: "12px" }}>
-            {adminInfo.email}
+            {userInfo.email}
           </div>
           <div
             style={{
@@ -46,7 +46,7 @@ const AdminHeader = ({ collapsed, setCollapsed }) => {
               textTransform: "capitalize",
             }}
           >
-            {adminInfo.role}
+            {userInfo.role}
           </div>
         </div>
       </Menu.Item>
@@ -60,8 +60,8 @@ const AdminHeader = ({ collapsed, setCollapsed }) => {
       <Menu.Item
         key="logout"
         onClick={() => {
-          localStorage.removeItem("adminInfo");
-          navigate("/admin/login");
+          localStorage.removeItem("userInfo");
+          navigate("/login");
         }}
       >
         <Space>
@@ -105,4 +105,4 @@ const AdminHeader = ({ collapsed, setCollapsed }) => {
   );
 };
 
-export default AdminHeader;
+export default UserHeader;

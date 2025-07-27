@@ -8,6 +8,9 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
+import HomeCourses from "./pages/HomeCourses";
+import Contact from "./pages/Contact";
+import AboutUs from "./pages/AboutUs";
 
 // Admin Pages
 import AdminDashboard from "./Admin/Pages/AdminDashboard";
@@ -20,13 +23,19 @@ import ViewQuestion from "./Admin/Components/ViewQuestion";
 import EditQuestion from "./Admin/Components/EditQuestion";
 
 // User Pages (add your user pages here)
-// import UserDashboard from "./pages/UserDashboard";
+import UserDashboard from "./User/Pages/UserDashboard";
+import UserCourses from "./User/Pages/UserCourses";
+import UserTest from "./User/Pages/UserTest";
+import UserProfile from "./User/Pages/UserProfile";
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/about" element={<AboutUs />} />
+      <Route path="/home-courses" element={<HomeCourses />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -99,14 +108,38 @@ const AppRoutes = () => {
       />
 
       {/* User Protected Routes */}
-      {/* <Route
+      <Route
         path="/dashboard"
         element={
           <UserProtectedRoute>
             <UserDashboard />
           </UserProtectedRoute>
         }
-      /> */}
+      />
+      <Route
+        path="/user-course"
+        element={
+          <UserProtectedRoute>
+            <UserCourses />
+          </UserProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <UserProtectedRoute>
+            <UserProfile />
+          </UserProtectedRoute>
+        }
+      />
+      <Route
+        path="/test/:id"
+        element={
+          <UserProtectedRoute>
+            <UserTest />
+          </UserProtectedRoute>
+        }
+      />
 
       {/* 404 Route */}
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -54,6 +54,7 @@ const AdminLoginForm = () => {
         onFinish={onFinish}
         layout="vertical"
         requiredMark={false}
+        style={{ maxWidth: "100%" }}
       >
         <Form.Item
           name="email"

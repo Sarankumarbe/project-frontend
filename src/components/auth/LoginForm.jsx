@@ -18,7 +18,7 @@ const LoginForm = () => {
   const dispatch = useDispatch();
   const [userLogin] = useUserLoginMutation();
 
-  const from = location.state?.from?.pathname || "/user/dashboard";
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const onFinish = async (values) => {
     try {
@@ -54,6 +54,7 @@ const LoginForm = () => {
       onFinish={onFinish}
       layout="vertical"
       requiredMark={false}
+      style={{ maxWidth: "100%" }}
     >
       <Form.Item
         name="email"
