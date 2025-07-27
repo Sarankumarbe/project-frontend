@@ -38,95 +38,8 @@ export const userApi = createApi({
       }),
     }),
 
-    // Public endpoints
-    getPublicCourses: builder.query({
-      query: ({ page = 1, limit = 10, category = "", search = "" }) =>
-        `/courses/public?page=${page}&limit=${limit}&category=${category}&search=${search}`,
-      providesTags: ["Course"],
-    }),
-
-    getPublicCourse: builder.query({
-      query: (id) => `/courses/public/${id}`,
-      providesTags: ["Course"],
-    }),
-
-    getNews: builder.query({
-      query: ({ page = 1, limit = 5 }) => `/news?page=${page}&limit=${limit}`,
-    }),
-
-    getPageContent: builder.query({
-      query: (pageName) => `/content/${pageName}`,
-    }),
-
-    // Course Purchase
-    purchaseCourse: builder.mutation({
-      query: (courseId) => ({
-        url: `/courses/${courseId}/purchase`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Purchase", "Course"],
-    }),
-
-    // User Dashboard
-    getUserCourses: builder.query({
-      query: () => "/dashboard/courses",
-      providesTags: ["Purchase"],
-    }),
-
-    getTestHistory: builder.query({
-      query: () => "/dashboard/test-history",
-      providesTags: ["Test"],
-    }),
-
-    // Test Taking
-    getTest: builder.query({
-      query: (courseId) => `/tests/${courseId}`,
-      providesTags: ["Test"],
-    }),
-
-    startTest: builder.mutation({
-      query: (courseId) => ({
-        url: `/tests/${courseId}/start`,
-        method: "POST",
-      }),
-      invalidatesTags: ["Test"],
-    }),
-
-    submitTest: builder.mutation({
-      query: ({ courseId, answers }) => ({
-        url: `/tests/${courseId}/submit`,
-        method: "POST",
-        body: { answers },
-      }),
-      invalidatesTags: ["Test"],
-    }),
-
-    getTestResults: builder.query({
-      query: (testId) => `/tests/${testId}/results`,
-      providesTags: ["Test"],
-    }),
-
-    // Profile Management
-    getProfile: builder.query({
-      query: () => "/profile",
-      providesTags: ["Profile"],
-    }),
-
-    updateProfile: builder.mutation({
-      query: (profileData) => ({
-        url: "/profile",
-        method: "PUT",
-        body: profileData,
-      }),
-      invalidatesTags: ["Profile"],
-    }),
-
-    changePassword: builder.mutation({
-      query: (passwordData) => ({
-        url: "/profile/change-password",
-        method: "PUT",
-        body: passwordData,
-      }),
+    getAllCourses: builder.query({
+      query: () => "/courses",
     }),
   }),
 });
@@ -137,27 +50,6 @@ export const {
   useUserRegisterMutation,
   useUserLogoutMutation,
 
-  // Public
-  useGetPublicCoursesQuery,
-  useGetPublicCourseQuery,
-  useGetNewsQuery,
-  useGetPageContentQuery,
-
-  // Course Purchase
-  usePurchaseCourseMutation,
-
-  // Dashboard
-  useGetUserCoursesQuery,
-  useGetTestHistoryQuery,
-
-  // Test Taking
-  useGetTestQuery,
-  useStartTestMutation,
-  useSubmitTestMutation,
-  useGetTestResultsQuery,
-
-  // Profile
-  useGetProfileQuery,
-  useUpdateProfileMutation,
-  useChangePasswordMutation,
+  //home page courses
+  useGetAllCoursesQuery,
 } = userApi;

@@ -9,6 +9,9 @@ import {
   LeftOutlined,
   RightOutlined,
   QuestionCircleOutlined,
+  ShopOutlined,
+  CarryOutOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./UserSidebar.css";
@@ -27,6 +30,7 @@ const UserSidebar = ({ collapsed, setCollapsed }) => {
       label: "Dashboard",
     },
     { key: "/user-course", icon: <BookOutlined />, label: "Courses" },
+    { key: "/cart", icon: <ShoppingCartOutlined />, label: "Cart" },
     { key: "/profile", icon: <UserOutlined />, label: "Profile" },
   ];
 

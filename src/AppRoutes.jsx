@@ -27,6 +27,8 @@ import UserDashboard from "./User/Pages/UserDashboard";
 import UserCourses from "./User/Pages/UserCourses";
 import UserTest from "./User/Pages/UserTest";
 import UserProfile from "./User/Pages/UserProfile";
+import CourseDetail from "./User/Components/CourseDetail";
+import UserCart from "./User/Pages/UserCArt";
 
 const AppRoutes = () => {
   return (
@@ -121,6 +123,22 @@ const AppRoutes = () => {
         element={
           <UserProtectedRoute>
             <UserCourses />
+          </UserProtectedRoute>
+        }
+      />
+      <Route
+        path="/cart"
+        element={
+          <UserProtectedRoute>
+            <UserCart />
+          </UserProtectedRoute>
+        }
+      />
+      <Route
+        path="/user-course/:id"
+        element={
+          <UserProtectedRoute>
+            <CourseDetail />
           </UserProtectedRoute>
         }
       />
