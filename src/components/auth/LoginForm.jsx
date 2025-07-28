@@ -32,6 +32,7 @@ const LoginForm = () => {
 
       // Set the token in cookies
       setCookie("token", result.token, 1); // Expires in 1 day
+      console.log(result, "res");
 
       dispatch(
         loginSuccess({

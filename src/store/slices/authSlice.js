@@ -54,7 +54,7 @@ const removeAuthFromLocalStorage = () => {
 
 const initialState = {
   user: null,
-  isAuthenticated: false, // Token is now in cookies, not in Redux
+  isAuthenticated: false,
   role: null, // 'admin' or 'user'
   loading: false,
   error: null,
@@ -80,6 +80,7 @@ const authSlice = createSlice({
       state.loading = false;
       state.isAuthenticated = true;
       state.user = {
+        _id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -103,10 +104,30 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    updateUser: (state, action) => {
+      if (state.user) {
+        state.user = {
+          ...state.user,
+          ...action.payload,
+        };
+        saveAuthToLocalStorage(state.user);
+      }
+    },
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, clearError } =
-  authSlice.actions;
+export const {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout,
+  clearError,
+  updateUser,
+} = authSlice.actions;
+
+// Selectors
+export const selectCurrentUser = (state) => state.auth.user;
+export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
+export const selectUserRole = (state) => state.auth.role;
 
 export default authSlice.reducer;

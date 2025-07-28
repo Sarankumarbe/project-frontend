@@ -29,6 +29,7 @@ import UserTest from "./User/Pages/UserTest";
 import UserProfile from "./User/Pages/UserProfile";
 import CourseDetail from "./User/Components/CourseDetail";
 import UserCart from "./User/Pages/UserCArt";
+import UserSubmission from "./User/Pages/UserSubmission";
 
 const AppRoutes = () => {
   return (
@@ -155,6 +156,14 @@ const AppRoutes = () => {
         element={
           <UserProtectedRoute>
             <UserTest />
+          </UserProtectedRoute>
+        }
+      />
+      <Route
+        path="/submission/:questionPaperId"
+        element={
+          <UserProtectedRoute>
+            <UserSubmission />
           </UserProtectedRoute>
         }
       />

@@ -11,97 +11,111 @@ import {
   Row,
   Col,
   Tag,
+  Alert,
+  message,
+  Spin,
 } from "antd";
 import UserMainLayout from "../Components/UserMainLayout";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  useGetQuestionPaperForPurchasedUserQuery,
+  useSubmitAnswersMutation,
+} from "../../store/api/userApi";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../../store/slices/authSlice";
 
 const { Title, Text } = Typography;
 
 const UserTest = () => {
-  const { id } = useParams();
+  const { id: questionPaperId } = useParams();
   const navigate = useNavigate();
+  const user = useSelector(selectCurrentUser);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(60 * 60); // 60 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [lowTimeAlert, setLowTimeAlert] = useState(false);
 
-  // Sample test data - replace with API call
-  const testData = {
-    id: id,
-    title: "Algebra Basics - Test 1",
-    totalMarks: 100,
-    passingMarks: 40,
-    questions: [
-      {
-        id: "q1",
-        text: "What is the solution to 2x + 5 = 15?",
-        options: [
-          { id: "a", text: "5" },
-          { id: "b", text: "10" },
-          { id: "c", text: "7.5" },
-          { id: "d", text: "2" },
-        ],
-        correctAnswer: "a",
-        marks: 5,
-      },
-      {
-        id: "q2",
-        text: "Simplify: 3(x + 4) - 2x",
-        options: [
-          { id: "a", text: "x + 12" },
-          { id: "b", text: "5x + 4" },
-          { id: "c", text: "3x + 10" },
-          { id: "d", text: "x + 4" },
-        ],
-        correctAnswer: "a",
-        marks: 5,
-      },
-      // Add more questions...
-    ],
-    duration: 60, // minutes
-  };
+  const {
+    data: testData,
+    isLoading,
+    isError,
+    error,
+  } = useGetQuestionPaperForPurchasedUserQuery(
+    { questionPaperId, userId: user?._id },
+    { skip: !user?._id }
+  );
+
+  const [submitAnswers, { isLoading: isSubmitting }] =
+    useSubmitAnswersMutation();
+
+  useEffect(() => {
+    if (isError) {
+      message.error(error?.data?.error || "Failed to load test");
+      navigate(-1);
+    }
+  }, [isError, error, navigate]);
+
+  useEffect(() => {
+    if (testData) {
+      // Initialize timer with duration from question paper (convert minutes to seconds)
+      setTimeLeft(testData.duration * 60);
+    }
+  }, [testData]);
 
   // Calculate progress information
-  const totalQuestions = testData.questions.length;
+  const totalQuestions = testData?.questions?.length || 0;
   const answeredQuestions = Object.keys(answers).length;
   const unansweredQuestions = totalQuestions - answeredQuestions;
   const isCurrentAnswered =
+    testData?.questions &&
     answers[testData.questions[currentQuestion]?.id] !== undefined;
-  const progressPercentage = Math.round(
-    (answeredQuestions / totalQuestions) * 100
-  );
+  const progressPercentage =
+    totalQuestions > 0
+      ? Math.round((answeredQuestions / totalQuestions) * 100)
+      : 0;
 
   // Timer effect
   useEffect(() => {
+    if (!testData || timeLeft <= 0) return;
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
+        const newTime = prev - 1;
+
+        // Show low time alert when under 5 minutes
+        if (newTime <= 300 && !lowTimeAlert) {
+          setLowTimeAlert(true);
+          message.warning(
+            "Less than 5 minutes remaining! Please complete your test soon."
+          );
+        }
+
+        if (newTime <= 0) {
           clearInterval(timer);
-          handleSubmit();
+          handleAutoSubmit();
           return 0;
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [testData, timeLeft]);
 
   const handleOptionChange = (e) => {
     setSelectedOption(e.target.value);
   };
 
   const handleNext = () => {
-    // Save current answer before moving
     if (selectedOption !== null) {
       setAnswers((prev) => ({
         ...prev,
         [testData.questions[currentQuestion].id]: selectedOption,
       }));
     }
-
-    // Move to next question
     setCurrentQuestion((prev) => prev + 1);
     setSelectedOption(
       answers[testData.questions[currentQuestion + 1]?.id] || null
@@ -115,7 +129,7 @@ const UserTest = () => {
     );
   };
 
-  const handleSubmit = () => {
+  const handleAutoSubmit = () => {
     // Save current answer if not already saved
     const currentQuestionId = testData.questions[currentQuestion]?.id;
     if (
@@ -128,9 +142,37 @@ const UserTest = () => {
         [currentQuestionId]: selectedOption,
       }));
     }
-
-    // Show submission modal
     setIsModalVisible(true);
+  };
+
+  const handleSubmit = () => {
+    setIsConfirmModalVisible(true);
+  };
+
+  const confirmSubmit = async () => {
+    setIsConfirmModalVisible(false);
+
+    try {
+      // Transform answers to include question numbers
+      const answersPayload = testData.questions
+        .filter((question) => answers[question.id] !== undefined)
+        .map((question) => ({
+          questionNumber: question.questionNumber,
+          selectedAnswer: answers[question.id],
+        }));
+
+      await submitAnswers({
+        userId: user._id,
+        questionPaperId,
+        answers: answersPayload,
+        timeTaken: testData.duration * 60 - timeLeft,
+      }).unwrap();
+
+      handleAutoSubmit();
+      message.success("Answers submitted successfully!");
+    } catch (error) {
+      message.error(error?.data?.message || "Failed to submit answers");
+    }
   };
 
   const formatTime = (seconds) => {
@@ -139,9 +181,38 @@ const UserTest = () => {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
+  if (isLoading) {
+    return (
+      <UserMainLayout>
+        <Card>
+          <Spin size="large" />
+        </Card>
+      </UserMainLayout>
+    );
+  }
+
+  if (!testData) {
+    return (
+      <UserMainLayout>
+        <Card>
+          <Text>No test data available</Text>
+        </Card>
+      </UserMainLayout>
+    );
+  }
+
   return (
     <UserMainLayout>
       <Card title={testData.title}>
+        {lowTimeAlert && timeLeft > 0 && (
+          <Alert
+            message="Hurry! Less than 5 minutes remaining"
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         {/* Test Information Row */}
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={8}>
@@ -201,6 +272,7 @@ const UserTest = () => {
         {/* Question and Options */}
         <div style={{ marginBottom: 24 }}>
           <Title level={4} style={{ marginBottom: 16 }}>
+            {testData.questions[currentQuestion].questionNumber}:{" "}
             {testData.questions[currentQuestion].text}
           </Title>
           <Radio.Group
@@ -211,7 +283,7 @@ const UserTest = () => {
             <Space direction="vertical">
               {testData.questions[currentQuestion].options.map((option) => (
                 <Radio key={option.id} value={option.id}>
-                  {option.text}
+                  {option.id.toUpperCase()}. {option.text}
                 </Radio>
               ))}
             </Space>
@@ -236,14 +308,40 @@ const UserTest = () => {
         </div>
       </Card>
 
+      {/* Confirmation Modal */}
+      <Modal
+        title="Confirm Submission"
+        visible={isConfirmModalVisible}
+        onOk={confirmSubmit}
+        onCancel={() => setIsConfirmModalVisible(false)}
+        okText="Submit"
+        cancelText="Cancel"
+      >
+        <Text>Are you sure you want to submit the test?</Text>
+        {unansweredQuestions > 0 && (
+          <Alert
+            message={`You have ${unansweredQuestions} unanswered questions`}
+            type="warning"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        )}
+      </Modal>
+
       {/* Submission Modal */}
       <Modal
         title="Test Submitted Successfully"
         visible={isModalVisible}
         onOk={() => navigate("/user-course")}
-        onCancel={() => navigate("/user-course")}
-        cancelButtonProps={{ style: { display: "none" } }}
-        okText="Back to Courses"
+        footer={[
+          <Button
+            key="back"
+            type="primary"
+            onClick={() => navigate("/user-course")}
+          >
+            Back to Courses
+          </Button>,
+        ]}
       >
         <div style={{ textAlign: "center" }}>
           <Title level={4}>Test Summary</Title>
