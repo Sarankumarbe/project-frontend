@@ -18,6 +18,7 @@ import AdminUsers from "./Admin/Pages/AdminUsers";
 import AdminCourses from "./Admin/Pages/AdminCourses";
 import AdminPayments from "./Admin/Pages/AdminPayments";
 import AdminProfile from "./Admin/Pages/AdminProfile";
+import AdminCoupons from "./Admin/Pages/AdminCoupons";
 import AdminQuestionPaper from "./Admin/Pages/AdminQuestionPaper";
 import AddQuestion from "./Admin/Components/AddQuestion";
 import ViewQuestion from "./Admin/Components/ViewQuestion";
@@ -107,6 +108,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute role="admin">
             <AdminPayments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/coupons"
+        element={
+          <ProtectedRoute role="admin">
+            <AdminCoupons />
           </ProtectedRoute>
         }
       />

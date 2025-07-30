@@ -10,6 +10,8 @@ import {
   RightOutlined,
   QuestionCircleOutlined,
   UsergroupAddOutlined,
+  GiftOutlined,
+  TagOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./AdminSidebar.css";
@@ -35,6 +37,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
       label: "Questions Upload",
     },
     { key: "/admin/payments", icon: <CreditCardOutlined />, label: "Payments" },
+    { key: "/admin/coupons", icon: <TagOutlined />, label: "Coupons" },
     { key: "/admin/profile", icon: <UserOutlined />, label: "Profile" },
   ];
 
