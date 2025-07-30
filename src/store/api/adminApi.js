@@ -125,6 +125,39 @@ export const adminApi = createApi({
         { type: "Course", id: "LIST" },
       ],
     }),
+    getPayments: builder.query({
+      query: ({
+        page = 1,
+        limit = 10,
+        search = "",
+        status = "",
+        sortBy = "createdAt",
+        sortOrder = "desc",
+      } = {}) => ({
+        url: "/payments",
+        params: {
+          page,
+          limit,
+          search,
+          status,
+          sortBy,
+          sortOrder,
+        },
+      }),
+      providesTags: ["Payments"],
+      // Transform response to make it easier to use in components
+      transformResponse: (response) => {
+        return {
+          payments: response.data.payments,
+          pagination: response.data.pagination,
+        };
+      },
+    }),
+    getPaymentStats: builder.query({
+      query: () => "/payments/stats",
+      providesTags: ["PaymentStats"],
+      transformResponse: (response) => response.data,
+    }),
   }),
 });
 
@@ -147,4 +180,8 @@ export const {
   useCreateCourseMutation,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
+
+  //Payments
+  useGetPaymentsQuery,
+  useGetPaymentStatsQuery,
 } = adminApi;

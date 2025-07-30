@@ -14,6 +14,7 @@ import AboutUs from "./pages/AboutUs";
 
 // Admin Pages
 import AdminDashboard from "./Admin/Pages/AdminDashboard";
+import AdminUsers from "./Admin/Pages/AdminUsers";
 import AdminCourses from "./Admin/Pages/AdminCourses";
 import AdminPayments from "./Admin/Pages/AdminPayments";
 import AdminProfile from "./Admin/Pages/AdminProfile";
@@ -49,6 +50,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute role="admin">
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute role="admin">
+            <AdminUsers />
           </ProtectedRoute>
         }
       />

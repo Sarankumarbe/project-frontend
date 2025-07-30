@@ -16,6 +16,7 @@ import {
   Descriptions,
   Tag,
   Divider,
+  Switch,
 } from "antd";
 import {
   PlusOutlined,
@@ -723,6 +724,28 @@ const AdminCourses = () => {
                     </Option>
                   ))}
                 </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Course Pack"
+                name="coursePack"
+                rules={[
+                  { required: true, message: "Please select a course pack!" },
+                ]}
+              >
+                <Select placeholder="Select course pack" size="large">
+                  <Option value="basic">Basic</Option>
+                  <Option value="silver">Silver</Option>
+                  <Option value="gold">Gold</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                label="Is Common?"
+                name="isCommon"
+                valuePropName="checked"
+              >
+                <Switch checkedChildren="Yes" unCheckedChildren="No" />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>

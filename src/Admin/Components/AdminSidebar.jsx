@@ -9,6 +9,7 @@ import {
   LeftOutlined,
   RightOutlined,
   QuestionCircleOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./AdminSidebar.css";
@@ -26,6 +27,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
       icon: <DashboardOutlined />,
       label: "Dashboard",
     },
+    { key: "/admin/users", icon: <UsergroupAddOutlined />, label: "Users" },
     { key: "/admin/courses", icon: <BookOutlined />, label: "Courses" },
     {
       key: "/admin/question-paper",
